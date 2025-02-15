@@ -70,15 +70,15 @@ const Chatbot = () => {
       alert("Unable to fetch location. Please try again.");
       return [];
     }
-
+    
     const { latitude, longitude } = location;
-    const apiUrl = `https://api.geoapify.com/v2/places?categories=healthcare.hospital&filter=circle:${longitude},${latitude},5000&limit=5&apiKey=${GEOAPIFY_API_KEY}`;
+    const apiUrl = `https://api.geoapify.com/v2/places?categories=healthcare.hospital&filter=circle:${80.9039962},${26.8499952},5000&limit=5&apiKey=${GEOAPIFY_API_KEY}`;
 
     try {
       const response = await fetch(apiUrl);
       const data = await response.json();
 
-      return data.features.map((hospital, index) => {
+      return data.features.map((hospital) => {
         const hospitalLat = hospital.geometry.coordinates[1];
         const hospitalLon = hospital.geometry.coordinates[0];
 
@@ -89,9 +89,7 @@ const Chatbot = () => {
           hospitalLon
         );
 
-        return `${index + 1}. ${
-          hospital.properties.name || "Unnamed Hospital"
-        } - ${distance.toFixed(2)} km away`;
+        return `${hospital.properties.name || "Unnamed Hospital"} - ${distance.toFixed(2)} km away`;
       });
     } catch (error) {
       console.error("Error fetching hospitals:", error);
@@ -100,20 +98,21 @@ const Chatbot = () => {
   };
 
   const handleUserQuery = async () => {
-    if (!message.trim()) return; // Prevent empty messages
+    if (!message.trim()) return;
 
     updateMessages("userMsg", message);
 
     if (message.toLowerCase().includes("nearby hospitals")) {
       const hospitals = await fetchNearbyHospitals();
       const hospitalResponse = hospitals.length
-        ? `Nearby hospitals:\n${hospitals.join("\n")}`
+        ? `Nearby hospitals:\n\n${hospitals.map((hospital, index) => `${index + 1}. ${hospital}`).join("\n")}`
         : "No hospitals found nearby.";
 
       updateMessages("responseMsg", hospitalResponse);
     } else {
       generateResponse(message);
     }
+
     setMessage("");
   };
 
@@ -169,25 +168,13 @@ const Chatbot = () => {
             />
           </div>
 
-          <div
-            className="p-4 h-96 overflow-y-auto border-b bg-gray-100 border-gray-300"
-            ref={chatContainerRef}
-          >
+          <div className="p-4 h-96 overflow-y-auto border-b bg-gray-100 border-gray-300" ref={chatContainerRef}>
             {messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`mb-4 flex ${
-                  msg.type === "userMsg" ? "justify-end" : "justify-start"
-                }`}
-              >
-                <div
-                  className={`p-4 rounded max-w-[70%] break-words text-base font-serif font-normal ${
-                    msg.type === "userMsg"
-                      ? "bg-red-400 text-black"
-                      : "bg-red-400 text-black"
-                  }`}
-                >
-                  {msg.text}
+              <div key={index} className={`mb-2 flex ${msg.type === "userMsg" ? "justify-end" : "justify-start"}`}>
+                <div className={`p-3 rounded max-w-[70%] break-words text-base font-serif font-normal ${msg.type === "userMsg" ? "bg-red-400 text-black" : "bg-red-400 text-black"}`}>
+                  {msg.text.split("\n").map((line, idx) => (
+                    <span key={idx} className="block">{line}</span>
+                  ))}
                 </div>
               </div>
             ))}
