@@ -17,6 +17,20 @@ const Chatbot = () => {
   const chatContainerRef = useRef(null);
   const recognition = useRef(null);
 
+  // const languages = [
+  //   "hi-IN", // Hindi
+  //   "en-IN", // English (India)
+  //   // "ta-IN", // Tamil
+  //   // "te-IN", // Telugu
+  //   // "mr-IN", // Marathi
+  //   // "gu-IN", // Gujarati
+  //   // "ml-IN", // Malayalam
+  //   // "kn-IN", // Kannada
+  //   "pa-IN", // Punjabi
+  //   // "ur-IN", // Urdu
+  // ];
+
+
   const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
   const GEOAPIFY_API_KEY = import.meta.env.VITE_GEOAPIFY_API_KEY;
 
@@ -43,7 +57,7 @@ const Chatbot = () => {
 
   const getDistanceFromLatLonInKm = (lat1, lon1, lat2, lon2) => {
     const toRadians = (deg) => deg * (Math.PI / 180);
-    const R = 6371; 
+    const R = 6371;
     const dLat = toRadians(lat2 - lat1);
     const dLon = toRadians(lon2 - lon1);
     const a =
@@ -60,7 +74,8 @@ const Chatbot = () => {
     }
 
     const { latitude, longitude } = location;
-    const apiUrl = `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${longitude},${latitude},5000&limit=5&apiKey=${GEOAPIFY_API_KEY}`;
+    const apiUrl = `https://api.geoapify.com/v2/places?categories=healthcare.hospital&filter=circle:${80.9039962},${26.8499952},5000&limit=5&apiKey=${GEOAPIFY_API_KEY}`;
+
     try {
       const response = await fetch(apiUrl);
       const data = await response.json();
@@ -134,25 +149,57 @@ const Chatbot = () => {
       alert("Your browser does not support speech recognition.");
       return;
     }
+  
+    setIsListening(true);
+    let detected = false;
+    const languages = ["hi-IN", "en-IN"]; // Hindi first, then English, then Punjabi
+    // const languages = ["te-IN","hi-IN"]; 
 
-    if (isListening) {
-      recognition.current.stop();
-      setIsListening(false);
-      return;
-    }
-
-    recognition.current = new window.webkitSpeechRecognition();
-    recognition.current.lang = language;
-    recognition.current.continuous = false;
-    recognition.current.interimResults = false;
-
-    recognition.current.onstart = () => setIsListening(true);
-    recognition.current.onend = () => setIsListening(false);
-    recognition.current.onresult = (event) => setMessage(event.results[0][0].transcript);
-    recognition.current.onerror = (event) => console.error("Speech recognition error:", event.error);
-
-    recognition.current.start();
+    let index = 0; // Track which language is being used
+    let recognition = new window.webkitSpeechRecognition();
+  
+    const startRecognition = (lang) => {
+      if (detected) return;
+  
+      recognition.lang = lang;
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.start();
+  
+      recognition.onresult = (event) => {
+        if (!detected) {
+          detected = true;
+          setMessage(event.results[0][0].transcript);
+          recognition.stop();
+          setIsListening(false);
+        }
+      };
+  
+      recognition.onerror = (event) => {
+        console.error(`Speech recognition error (${lang}):`, event.error);
+        if (!detected && index < languages.length - 1) {
+          index++;
+          startRecognition(languages[index]); // Try the next language
+        } else {
+          setIsListening(false);
+        }
+      };
+  
+      recognition.onend = () => {
+        if (!detected && index < languages.length - 1) {
+          index++;
+          startRecognition(languages[index]); // Move to the next language
+        } else {
+          setIsListening(false);
+        }
+      };
+    };
+  
+    startRecognition(languages[index]); // Start with Hindi
   };
+  
+  
+  
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
