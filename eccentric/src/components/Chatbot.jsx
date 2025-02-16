@@ -41,33 +41,17 @@ const Chatbot = () => {
     }
   }, [messages]);
 
-  useEffect(() => {
-    if (!("webkitSpeechRecognition" in window)) {
-      alert("Your browser does not support speech recognition.");
-      return;
-    }
-
-    recognition.current = new window.webkitSpeechRecognition();
-    recognition.current.lang = language;
-    recognition.current.continuous = false;
-    recognition.current.interimResults = false;
-
-    recognition.current.onstart = () => {
-      console.log("Speech recognition started...");
-      setIsListening(true);
-    };
-
-    recognition.current.onend = () => {
-      console.log("Speech recognition stopped.");
-      setIsListening(false);
-    };
-
-    recognition.current.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      console.log("Speech recognized:", transcript);
-      setMessage(transcript);
-    };
-  }, [language]);
+  const getDistanceFromLatLonInKm = (lat1, lon1, lat2, lon2) => {
+    const toRadians = (deg) => deg * (Math.PI / 180);
+    const R = 6371; 
+    const dLat = toRadians(lat2 - lat1);
+    const dLon = toRadians(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
 
   const fetchPlaces = async (category) => {
     if (!location) {
@@ -76,13 +60,19 @@ const Chatbot = () => {
     }
 
     const { latitude, longitude } = location;
-    const apiUrl = `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${80.9039962},${26.8499952},5000&limit=5&apiKey=${GEOAPIFY_API_KEY}`;
-
+    // const apiUrl = `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${longitude},${latitude},5000&limit=5&apiKey=${GEOAPIFY_API_KEY}`;
+    const apiUrl = `https://api.geoapify.com/v2/places?categories=healthcare.hospital&filter=circle:${80.9039962},${26.8499952},5000&limit=5&apiKey=${GEOAPIFY_API_KEY}`;
     try {
       const response = await fetch(apiUrl);
       const data = await response.json();
 
-      return data.features.map((place) => `${place.properties.name || "Unnamed"} - ${place.properties.distance}m away`);
+      return data.features.map((place, index) => {
+        const placeLat = place.geometry.coordinates[1];
+        const placeLon = place.geometry.coordinates[0];
+
+        const distance = getDistanceFromLatLonInKm(latitude, longitude, placeLat, placeLon);
+        return `${index + 1}. ${place.properties.name || "Unnamed Place"} - ${distance.toFixed(2)} km away`;
+      });
     } catch (error) {
       console.error("Error fetching places:", error);
       return [];
@@ -95,9 +85,13 @@ const Chatbot = () => {
     updateMessages("userMsg", message);
 
     let category = null;
-    if (message.toLowerCase().includes("nearby hospitals")) category = "healthcare.hospital";
-    else if (message.toLowerCase().includes("nearby pharmacies")) category = "healthcare.pharmacy";
-    else if (message.toLowerCase().includes("nearby restaurants")) category = "catering.restaurant";
+    if (message.toLowerCase().includes("nearby hospitals") || message.toLowerCase().includes("hospitals near me")) {
+      category = "healthcare.hospital";
+    } else if (message.toLowerCase().includes("nearby pharmacies")) {
+      category = "healthcare.pharmacy";
+    } else if (message.toLowerCase().includes("nearby restaurants")) {
+      category = "catering.restaurant";
+    }
 
     if (category) {
       const places = await fetchPlaces(category);
@@ -141,47 +135,25 @@ const Chatbot = () => {
       alert("Your browser does not support speech recognition.");
       return;
     }
-  
+
     if (isListening) {
       recognition.current.stop();
       setIsListening(false);
-      console.log("Speech recognition stopped.");
       return;
     }
-  
+
     recognition.current = new window.webkitSpeechRecognition();
     recognition.current.lang = language;
-    recognition.current.continuous = false; // Stop after user speaks
-    recognition.current.interimResults = true; // Capture interim results for debugging
-  
-    recognition.current.onstart = () => {
-      setIsListening(true);
-      console.log("Speech recognition started...");
-    };
-  
-    recognition.current.onend = () => {
-      setIsListening(false);
-      console.log("Speech recognition stopped.");
-    };
-  
-    recognition.current.onresult = (event) => {
-      console.log("Speech recognition result event:", event);
-      if (event.results.length > 0) {
-        const transcript = event.results[0][0].transcript;
-        console.log("Recognized Text:", transcript);
-        setMessage(transcript);
-      } else {
-        console.log("No speech recognized.");
-      }
-    };
-  
-    recognition.current.onerror = (event) => {
-      console.error("Speech recognition error:", event.error);
-    };
-  
+    recognition.current.continuous = false;
+    recognition.current.interimResults = false;
+
+    recognition.current.onstart = () => setIsListening(true);
+    recognition.current.onend = () => setIsListening(false);
+    recognition.current.onresult = (event) => setMessage(event.results[0][0].transcript);
+    recognition.current.onerror = (event) => console.error("Speech recognition error:", event.error);
+
     recognition.current.start();
   };
-  
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
@@ -214,7 +186,7 @@ const Chatbot = () => {
               {isListening ? <RiVoiceprintFill /> : <MdKeyboardVoice />}
             </button>
             <input value={message} onChange={(e) => setMessage(e.target.value)} onKeyDown={handleKeyDown} type="text" className="flex-1 bg-transparent text-black outline-none placeholder-gray-500" placeholder="Write your message..." />
-            <IoSend className="text-red-600 text-2xl cursor-pointer ml-4" onClick={handleUserQuery} />
+            <IoSend className="text-red-600 text-2xl cursor-pointer" onClick={handleUserQuery} />
           </div>
         </div>
       )}
