@@ -120,6 +120,8 @@ const handleUserQuery = async () => {
     lowerMessage.includes("దగ్గర్లో హాస్పిటల్") || 
     lowerMessage.includes("అసుపత్రి దగ్గర") || 
     lowerMessage.includes("సమీప హాస్పిటల్") || 
+    lowerMessage.includes("దగ్గరలో హాస్పిటల్స్") || 
+    lowerMessage.includes("దగ్గరలో") || 
     lowerMessage.includes("అత్యవసర చికిత్స కోసం ఆసుపత్రి")
   ) {
     category = "healthcare.hospital";
@@ -249,7 +251,7 @@ const handleUserQuery = async () => {
       const translatedText = await translateText(transcript, "te", "en");
       console.log("Translated (English):", translatedText);
       
-      setMessage(translatedText);
+      setMessage(transcript);
       handleUserQuery(); // Process the query after translating
       setIsListening(false);
     };
