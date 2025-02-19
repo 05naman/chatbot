@@ -99,7 +99,6 @@ const handleUserQuery = async () => {
   let category = null;
   const lowerMessage = message.toLowerCase();
 
-  // Enhanced detection for both English and Telugu
   if (
     lowerMessage.includes("nearby hospitals") || 
     lowerMessage.includes("hospitals near me") || 
