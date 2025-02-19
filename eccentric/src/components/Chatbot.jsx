@@ -86,37 +86,69 @@ const Chatbot = () => {
       return [];
     }
   };
-  const handleUserQuery = async () => {
-    if (!message.trim()) return;
 
-    updateMessages("userMsg", message);
 
-    let category = null;
-    if (message.toLowerCase().includes("nearby hospitals") || message.toLowerCase().includes("hospitals near me")|| message.toLowerCase().includes("Tell the nearest hospital")) {
-      category = "healthcare.hospital";
-    } else if (message.toLowerCase().includes("nearby pharmacies")) {
-      category = "healthcare.pharmacy";
-    } else if (message.toLowerCase().includes("nearby restaurants")) {
-      category = "catering.restaurant";
-    }
 
-    if (category) {
-      const places = await fetchPlaces(category);
-      const placesMessage = places.length 
+
+
+const handleUserQuery = async () => {
+  if (!message.trim()) return;
+
+  updateMessages("userMsg", message);
+
+  let category = null;
+  const lowerMessage = message.toLowerCase();
+
+  // Enhanced detection for both English and Telugu
+  if (
+    lowerMessage.includes("nearby hospitals") || 
+    lowerMessage.includes("hospitals near me") || 
+    lowerMessage.includes("Tell the nearest hospital") || 
+    lowerMessage.includes("nearest hospital") || 
+    lowerMessage.includes("near me hospital") || 
+    lowerMessage.includes("close by hospital") || 
+    lowerMessage.includes("emergency hospital near me") || 
+    lowerMessage.includes("hospitals around me") || 
+    lowerMessage.includes("nearby clinics") || 
+    lowerMessage.includes("medical centers near me") || 
+    lowerMessage.includes("hospital nearby") ||
+    lowerMessage.includes("నాకు దగ్గరలో ఉన్న ఆసుపత్రులు") || 
+    lowerMessage.includes("దగ్గరలో ఆసుపత్రులు") || 
+    lowerMessage.includes("దగ్గరలో ఉన్న ఆసుపత్రులు") || 
+    lowerMessage.includes("సమీపంలోని ఆసుపత్రులు") || 
+    lowerMessage.includes("నాకు సమీపంలో ఆసుపత్రులు") || 
+    lowerMessage.includes("అత్యవసర ఆసుపత్రులు") || 
+    lowerMessage.includes("దగ్గర్లో హాస్పిటల్") || 
+    lowerMessage.includes("అసుపత్రి దగ్గర") || 
+    lowerMessage.includes("సమీప హాస్పిటల్") || 
+    lowerMessage.includes("అత్యవసర చికిత్స కోసం ఆసుపత్రి")
+  ) {
+    category = "healthcare.hospital";
+  }
+   else if (lowerMessage.includes("nearby pharmacies")) {
+    category = "healthcare.pharmacy";
+  } else if (lowerMessage.includes("nearby restaurants")) {
+    category = "catering.restaurant";
+  }
+
+  if (category) {
+    const places = await fetchPlaces(category);
+    const placesMessage = places.length 
       ? `Nearby places:\n${places.map(place => `${place}\n\n`).join("")}` 
       : "No places found.";
-      updateMessages("responseMsg", placesMessage);
-      const translatedText = await translateText(placesMessage, "en", "te");
-      updateMessages("responseMsg", translatedText.length ? translatedText : "No places found.");
 
-    } 
-    else
-    {
-      generateResponse(message);
-    }
+    updateMessages("responseMsg", placesMessage);
 
-    setMessage("");
-  };
+    // Translate the response to Telugu before displaying
+    const translatedText = await translateText(placesMessage, "en", "te");
+    updateMessages("responseMsg", translatedText.length ? translatedText : "No places found.");
+  } else {
+    generateResponse(message);
+  }
+
+  setMessage("");
+};
+
 
   const translateText = async (text, fromLang, toLang) => {
     const maxLength = 500; // API limit
@@ -204,56 +236,35 @@ const Chatbot = () => {
     }
   
     setIsListening(true);
-    let detected = false;
-    const languages = ["te-IN"]; // Add more languages as needed
+    const recognition = new window.webkitSpeechRecognition();
+    recognition.lang = "te-IN"; // Set to Telugu
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.start();
   
-    let index = 0;
-    let recognition = new window.webkitSpeechRecognition();
+    recognition.onresult = async (event) => {
+      const transcript = event.results[0][0].transcript;
+      console.log("Heard (Telugu):", transcript);
   
-    const startRecognition = (lang) => {
-      if (detected) return;
-  
-      recognition.lang = lang;
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.start();
-  
-      recognition.onresult = async (event) => {
-        if (!detected) {
-          detected = true;
-          const transcript = event.results[0][0].transcript;
-          
-          // Translate to English before using the message
-          const translatedText = await translateText(transcript, "te-IN", "en");
-          setMessage(translatedText);
-  
-          recognition.stop();
-          setIsListening(false);
-        }
-      };
-  
-      recognition.onerror = (event) => {
-        console.error(`Speech recognition error (${lang}):`, event.error);
-        if (!detected && index < languages.length - 1) {
-          index++;
-          startRecognition(languages[index]); 
-        } else {
-          setIsListening(false);
-        }
-      };
-  
-      recognition.onend = () => {
-        if (!detected && index < languages.length - 1) {
-          index++;
-          startRecognition(languages[index]);
-        } else {
-          setIsListening(false);
-        }
-      };
+      // Translate to English before processing the message
+      const translatedText = await translateText(transcript, "te", "en");
+      console.log("Translated (English):", translatedText);
+      
+      setMessage(translatedText);
+      handleUserQuery(); // Process the query after translating
+      setIsListening(false);
     };
   
-    startRecognition(languages[index]);
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error:", event.error);
+      setIsListening(false);
+    };
+  
+    recognition.onend = () => {
+      setIsListening(false);
+    };
   };
+  
   
 
   return (
