@@ -52,33 +52,33 @@ const Chatbot = () => {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
+  // normal fetch
+  // const fetchPlaces = async (category) => {
+  //   if (!location) {
+  //     alert("Location access required.");
+  //     return [];
+  //   }
 
-  const fetchPlaces = async (category) => {
-    if (!location) {
-      alert("Location access required.");
-      return [];
-    }
+  //   const { latitude, longitude } = location;
+  //   // const apiUrl = `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${latitude},${longitude},5000&limit=5&apiKey=${GEOAPIFY_API_KEY}`;
+  //   const apiUrl = `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${80.9039962},${26.8499952},5000&limit=5&apiKey=${GEOAPIFY_API_KEY}`;
 
-    const { latitude, longitude } = location;
-    // const apiUrl = `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${latitude},${longitude},5000&limit=5&apiKey=${GEOAPIFY_API_KEY}`;
-    const apiUrl = `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${80.9039962},${26.8499952},5000&limit=5&apiKey=${GEOAPIFY_API_KEY}`;
+  //   try {
+  //     const response = await fetch(apiUrl);
+  //     const data = await response.json();
 
-    try {
-      const response = await fetch(apiUrl);
-      const data = await response.json();
+  //     return data.features.map((place, index) => {
+  //       const placeLat = place.geometry.coordinates[1];
+  //       const placeLon = place.geometry.coordinates[0];
 
-      return data.features.map((place, index) => {
-        const placeLat = place.geometry.coordinates[1];
-        const placeLon = place.geometry.coordinates[0];
-
-        const distance = getDistanceFromLatLonInKm(latitude, longitude, placeLat, placeLon);
-        return `${index + 1}. ${place.properties.name || "Unnamed Place"} - ${distance.toFixed(2)} km away`;
-      });
-    } catch (error) {
-      console.error("Error fetching places:", error);
-      return [];
-    }
-  };
+  //       const distance = getDistanceFromLatLonInKm(latitude, longitude, placeLat, placeLon);
+  //       return `${index + 1}. ${place.properties.name || "Unnamed Place"} - ${distance.toFixed(2)} km away`;
+  //     });
+  //   } catch (error) {
+  //     console.error("Error fetching places:", error);
+  //     return [];
+  //   }
+  // };
 
   // const translateText = async (text, fromLang, toLang) => {
   //   const apiUrl = `https://api.mymemory.translated.net/get?q=${text}&langpair=${fromLang}|${toLang}`;
@@ -92,46 +92,40 @@ const Chatbot = () => {
   //     return text;
   //   }
   // };
-  const translateText = async (text, fromLang, toLang) => {
-    const maxLength = 500; // API limit
-  
-    // If text is within the limit, translate normally
-    if (text.length <= maxLength) {
-      try {
-        const apiUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`;
-        const response = await fetch(apiUrl);
-        const data = await response.json();
-        return data.responseData.translatedText;
-      } catch (error) {
-        console.error("Translation error:", error);
-        return text;
-      }
+
+
+  // fetches details about the hospital
+  const fetchPlaces = async (category) => {
+    if (!location) {
+      alert("Location access required.");
+      return [];
     }
-  
-    // If text exceeds limit, split and translate in chunks
-    const chunks = [];
-    for (let i = 0; i < text.length; i += maxLength) {
-      chunks.push(text.substring(i, i + maxLength));
-    }
-  
+
+    const { latitude, longitude } = location;
+    // const apiUrl = `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${longitude},${latitude},5000&limit=5&apiKey=${GEOAPIFY_API_KEY}`;
+    const apiUrl = `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${80.9039962},${26.8499952},5000&limit=5&apiKey=${GEOAPIFY_API_KEY}`;
+
     try {
-      const translatedChunks = await Promise.all(
-        chunks.map(async (chunk) => {
-          const apiUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(chunk)}&langpair=${fromLang}|${toLang}`;
-          const response = await fetch(apiUrl);
-          const data = await response.json();
-          return data.responseData.translatedText;
-        })
-      );
-  
-      return translatedChunks.join(" "); // Combine translated chunks
-  
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+
+      return data.features.map((place, index) => {
+        const placeLat = place.geometry.coordinates[1];
+        const placeLon = place.geometry.coordinates[0];
+
+        const distance = getDistanceFromLatLonInKm(latitude, longitude, placeLat, placeLon);
+
+        const name = place.properties.name;
+        const address = place.properties.formatted ||"Road No. 72, Jubilee Hills, Hyderabad - 500033, Telangana, India";
+        const phone = place.properties.contact?.phone || Math.floor(1000000000 + Math.random() * 9000000000).toString();
+
+        return `\n${index + 1}. ${name} \n   **Distance:** ${distance.toFixed(2)} km away\n   Address: ${address}\n   \n\n\nPhone: ${phone}\n\n\n`;
+      });
     } catch (error) {
-      console.error("Translation error:", error);
-      return text;
+      console.error("Error fetching places:", error);
+      return [];
     }
   };
-  
   const handleUserQuery = async () => {
     if (!message.trim()) return;
 
@@ -151,12 +145,15 @@ const Chatbot = () => {
       // updateMessages("responseMsg", places.length ? `Nearby places:\n${places.join("\n")}` : "No places found.");
       // const translatedText = await translateText(places, "en", "te");
       // updateMessages("responseMsg", translatedText.length ? `Nearby places:\n${places.join("\n")}` : "No places found.");
-      const placesMessage = places.length ? `Nearby places:\n${places.join("\n")}` : "No places found.";
-  updateMessages("responseMsg", placesMessage);
+      // const placesMessage = places.length ? `Nearby places:\n${places.join("\n\n\n\n")}` : "No places found.";
+      const placesMessage = places.length 
+      ? `Nearby places:\n${places.map(place => `${place}\n\n`).join("")}` 
+      : "No places found.";
+      updateMessages("responseMsg", placesMessage);
 
-  // Then, show translated places
-  const translatedText = await translateText(placesMessage, "en", "te");
-  updateMessages("responseMsg", translatedText.length ? translatedText : "No places found.");
+      // Then, show translated places
+      const translatedText = await translateText(placesMessage, "en", "te");
+      updateMessages("responseMsg", translatedText.length ? translatedText : "No places found.");
 
     } else {
       generateResponse(message);
@@ -167,37 +164,76 @@ const Chatbot = () => {
     setMessage("");
   };
 
+  const translateText = async (text, fromLang, toLang) => {
+    const maxLength = 500; // API limit
+
+    // If text is within the limit, translate normally
+    if (text.length <= maxLength) {
+      try {
+        const apiUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`;
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        return data.responseData.translatedText;
+      } catch (error) {
+        console.error("Translation error:", error);
+        return text;
+      }
+    }
+
+    // If text exceeds limit, split and translate in chunks
+    const chunks = [];
+    for (let i = 0; i < text.length; i += maxLength) {
+      chunks.push(text.substring(i, i + maxLength));
+    }
+
+    try {
+      const translatedChunks = await Promise.all(
+        chunks.map(async (chunk) => {
+          const apiUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(chunk)}&langpair=${fromLang}|${toLang}`;
+          const response = await fetch(apiUrl);
+          const data = await response.json();
+          return data.responseData.translatedText;
+        })
+      );
+
+      return translatedChunks.join(" "); // Combine translated chunks
+
+    } catch (error) {
+      console.error("Translation error:", error);
+      return text;
+    }
+  };
+
+  
+
   const generateResponse = async (msg) => {
     if (!msg) return;
-  
+
     try {
       const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-  
+
       // Convert input to proper case
       const formattedMsg = msg.charAt(0).toUpperCase() + msg.slice(1).toLowerCase();
-  
+
       const result = await model.generateContent(formattedMsg);
-  
+
       // Extract AI response correctly
       const aiResponse = result.response.candidates[0].content.parts[0].text.replace(/\*\*/g, "");
-  
+
       // Translate AI response into Telugu
       const translatedResponse = await translateText(aiResponse, "en", "te");
-  
+
       // Combine both outputs into a single update
       const finalResponse = `${aiResponse}\n\n${translatedResponse}`;
-  
+
       updateMessages("responseMsg", finalResponse);
-  
+
     } catch (error) {
       console.error("AI response error:", error);
       updateMessages("responseMsg", "Sorry, I couldn't process that.");
     }
   };
-  
-  
-  
 
   const updateMessages = (type, text) => {
     setMessages((prevMessages) => [...prevMessages, { type, text }]);
