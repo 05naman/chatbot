@@ -60,7 +60,8 @@ const Chatbot = () => {
     }
 
     const { latitude, longitude } = location;
-    const apiUrl = `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${longitude},${latitude},5000&limit=5&apiKey=${GEOAPIFY_API_KEY}`;
+    // const apiUrl = `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${latitude},${longitude},5000&limit=5&apiKey=${GEOAPIFY_API_KEY}`;
+    const apiUrl = `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${80.9039962},${26.8499952},5000&limit=5&apiKey=${GEOAPIFY_API_KEY}`;
 
     try {
       const response = await fetch(apiUrl);
