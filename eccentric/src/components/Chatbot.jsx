@@ -103,6 +103,8 @@ const handleUserQuery = async () => {
     lowerMessage.includes("nearby hospitals") || 
     lowerMessage.includes("hospitals near me") || 
     lowerMessage.includes("Tell the nearest hospital") || 
+    lowerMessage.includes("hospitals") ||
+    lowerMessage.includes("hospital") || 
     lowerMessage.includes("nearest hospital") || 
     lowerMessage.includes("near me hospital") || 
     lowerMessage.includes("close by hospital") || 
@@ -141,8 +143,8 @@ const handleUserQuery = async () => {
     updateMessages("responseMsg", placesMessage);
 
     // Translate the response to Telugu before displaying
-    const translatedText = await translateText(placesMessage, "en", "te");
-    updateMessages("responseMsg", translatedText.length ? translatedText : "No places found.");
+    // const translatedText = await translateText(placesMessage, "en", "te");
+    // updateMessages("responseMsg", translatedText.length ? translatedText : "No places found.");
   } else {
     generateResponse(message);
   }
@@ -206,7 +208,8 @@ const handleUserQuery = async () => {
       const aiResponse = result.response.candidates[0].content.parts[0].text.replace(/\*\*/g, "");
       const translatedResponse = await translateText(aiResponse, "en", "te");
 
-      const finalResponse = `${aiResponse}\n${translatedResponse}`;
+      // const finalResponse = `${aiResponse}\n${translatedResponse}`;
+      const finalResponse = `${aiResponse}`;
 
       updateMessages("responseMsg", finalResponse);
 
