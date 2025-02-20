@@ -17,8 +17,8 @@ const Chatbot = () => {
   const chatContainerRef = useRef(null);
   const recognition = useRef(null);
 
-  const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-  const GEOAPIFY_API_KEY = import.meta.env.VITE_GEOAPIFY_API_KEY;
+  const GEMINI_API_KEY = "AIzaSyA3tNIFRBrR6mleFyCvU4sOr6GrISs53ug";
+  const GEOAPIFY_API_KEY = "cbe1acda9004405699628fa99971a2d3";
 
   useEffect(() => {
     if ("geolocation" in navigator) {
